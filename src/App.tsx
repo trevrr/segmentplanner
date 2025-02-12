@@ -4,7 +4,7 @@ import { NetworkVisualizer } from './components/NetworkVisualizer';
 import { NetworkActions } from './components/NetworkActions';
 import { NetworkPlan, SubnetSegment } from './types/network';
 import { calculateSubnetInfo } from './utils/networkUtils';
-import { Network, Edit2, Trash2 } from 'lucide-react';
+import { Network, Edit2, Trash2, Upload } from 'lucide-react';
 
 function App() {
   const [networks, setNetworks] = useState<NetworkPlan[]>(() => {
@@ -92,7 +92,6 @@ function App() {
     setEditingNetworkName(false);
   };
 
-  // New function to handle deleting a saved network
   const handleDeleteNetwork = (networkId: string) => {
     setNetworks(prev => prev.filter(network => network.id !== networkId));
     if (selectedNetwork?.id === networkId) {
@@ -100,7 +99,6 @@ function App() {
     }
   };
 
-  // New function to reset the current network to its initial state
   const handleResetNetwork = () => {
     if (!selectedNetwork) return;
 
@@ -127,6 +125,22 @@ function App() {
       )
     );
     setSelectedNetwork(resetNetwork);
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        handleImport(data);
+      } catch (err) {
+        alert('Invalid network plan file. Please try again.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -175,6 +189,18 @@ function App() {
                   ))}
                 </ul>
               )}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <label className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer w-full">
+                  <Upload className="h-4 w-4" />
+                  Import Network
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileImport}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
             <NetworkForm onSubmit={handleCreateNetwork} />
           </div>

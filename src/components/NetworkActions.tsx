@@ -8,41 +8,15 @@ interface NetworkActionsProps {
 }
 
 export function NetworkActions({ network, onImport }: NetworkActionsProps) {
-  const exportToCSV = () => {
+  const exportToJSON = () => {
     if (!network) return;
 
-    const flattenSegments = (segments: SubnetSegment[], parentName = ''): string[] => {
-      const rows: string[] = [];
-      segments.forEach(segment => {
-        const prefix = parentName ? `${parentName} > ` : '';
-        rows.push([
-          `"${prefix}${segment.name}"`,
-          segment.network,
-          segment.netmask,
-          segment.gateway,
-          segment.broadcast,
-          segment.firstUsable,
-          segment.lastUsable,
-          segment.usableHosts.toString()
-        ].join('\t'));
-
-        if (segment.children) {
-          rows.push(...flattenSegments(segment.children, `${prefix}${segment.name}`));
-        }
-      });
-      return rows;
-    };
-
-    const headers = ['Name', 'Network', 'Netmask', 'Gateway', 'Broadcast', 'First Usable', 'Last Usable', 'Usable Hosts'].join('\t');
-    const rows = flattenSegments(network.segments);
-    const csv = [headers, ...rows].join('\n');
-
     // Create a blob and download
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([JSON.stringify(network, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${network.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_network_plan.csv`;
+    a.download = `${network.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_network_plan.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -52,34 +26,8 @@ export function NetworkActions({ network, onImport }: NetworkActionsProps) {
   const copyToClipboard = async () => {
     if (!network) return;
     
-    const flattenSegments = (segments: SubnetSegment[], parentName = ''): string[] => {
-      const rows: string[] = [];
-      segments.forEach(segment => {
-        const prefix = parentName ? `${parentName} > ` : '';
-        rows.push([
-          `${prefix}${segment.name}`,
-          segment.network,
-          segment.netmask,
-          segment.gateway,
-          segment.broadcast,
-          segment.firstUsable,
-          segment.lastUsable,
-          segment.usableHosts
-        ].join('\t'));
-
-        if (segment.children) {
-          rows.push(...flattenSegments(segment.children, `${prefix}${segment.name}`));
-        }
-      });
-      return rows;
-    };
-
-    const headers = ['Name', 'Network', 'Netmask', 'Gateway', 'Broadcast', 'First Usable', 'Last Usable', 'Usable Hosts'].join('\t');
-    const rows = flattenSegments(network.segments);
-    const text = [headers, ...rows].join('\n');
-
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(JSON.stringify(network, null, 2));
       alert('Network data copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
@@ -106,11 +54,11 @@ export function NetworkActions({ network, onImport }: NetworkActionsProps) {
   return (
     <div className="flex gap-2 mb-4">
       <button
-        onClick={exportToCSV}
+        onClick={exportToJSON}
         className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         <Download className="h-4 w-4" />
-        Export CSV
+        Export JSON
       </button>
       
       <button
