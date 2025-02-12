@@ -4,7 +4,7 @@ import { NetworkVisualizer } from './components/NetworkVisualizer';
 import { NetworkActions } from './components/NetworkActions';
 import { NetworkPlan, SubnetSegment } from './types/network';
 import { calculateSubnetInfo } from './utils/networkUtils';
-import { Network, Edit2 } from 'lucide-react';
+import { Network, Edit2, Trash2 } from 'lucide-react';
 
 function App() {
   const [networks, setNetworks] = useState<NetworkPlan[]>(() => {
@@ -92,6 +92,43 @@ function App() {
     setEditingNetworkName(false);
   };
 
+  // New function to handle deleting a saved network
+  const handleDeleteNetwork = (networkId: string) => {
+    setNetworks(prev => prev.filter(network => network.id !== networkId));
+    if (selectedNetwork?.id === networkId) {
+      setSelectedNetwork(null);
+    }
+  };
+
+  // New function to reset the current network to its initial state
+  const handleResetNetwork = () => {
+    if (!selectedNetwork) return;
+
+    const subnetInfo = calculateSubnetInfo(selectedNetwork.baseNetwork, selectedNetwork.baseNetmask);
+    const resetNetwork: NetworkPlan = {
+      ...selectedNetwork,
+      segments: [{
+        name: 'Base Network',
+        network: selectedNetwork.baseNetwork,
+        netmask: selectedNetwork.baseNetmask,
+        gateway: subnetInfo.firstUsable,
+        broadcast: subnetInfo.broadcast,
+        firstUsable: subnetInfo.firstUsable,
+        lastUsable: subnetInfo.lastUsable,
+        totalHosts: subnetInfo.totalHosts,
+        usableHosts: subnetInfo.usableHosts,
+      }],
+      updatedAt: new Date().toISOString(),
+    };
+
+    setNetworks(prev =>
+      prev.map(network =>
+        network.id === selectedNetwork.id ? resetNetwork : network
+      )
+    );
+    setSelectedNetwork(resetNetwork);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-sm">
@@ -113,10 +150,10 @@ function App() {
               ) : (
                 <ul className="space-y-2">
                   {networks.map(network => (
-                    <li key={network.id}>
+                    <li key={network.id} className="flex items-center justify-between">
                       <button
                         onClick={() => setSelectedNetwork(network)}
-                        className={`w-full text-left px-4 py-2 rounded-md ${
+                        className={`flex-grow text-left px-4 py-2 rounded-md ${
                           selectedNetwork?.id === network.id
                             ? 'bg-blue-50 text-blue-700'
                             : 'hover:bg-gray-50'
@@ -126,6 +163,13 @@ function App() {
                         <div className="text-sm text-gray-500">
                           {network.baseNetwork}/{network.baseNetmask}
                         </div>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNetwork(network.id)}
+                        className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded-md"
+                        title="Delete network"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </li>
                   ))}
@@ -164,6 +208,14 @@ function App() {
                         </button>
                       </div>
                     )}
+                    <button
+                      onClick={handleResetNetwork}
+                      className="px-3 py-1 text-red-500 hover:bg-red-50 rounded-md flex items-center gap-1"
+                      title="Reset to base network"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Reset Network
+                    </button>
                   </div>
                 </div>
                 <NetworkActions 
@@ -171,7 +223,7 @@ function App() {
                   onImport={handleImport}
                 />
                 <NetworkVisualizer
-                  key={selectedNetwork.updatedAt} // Add key to force re-render
+                  key={selectedNetwork.updatedAt}
                   segments={selectedNetwork.segments}
                   onUpdateSegments={handleUpdateSegments}
                 />
